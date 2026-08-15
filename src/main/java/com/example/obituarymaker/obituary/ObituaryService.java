@@ -92,7 +92,7 @@ public class ObituaryService {
     }
 
     private String newId() {
-        return UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        return UUID.randomUUID().toString();
     }
 
     private String now() {
