@@ -63,8 +63,8 @@ A열(부고장ID)로 행을 찾으며, MVP 데이터량 기준으로는 시트 �
 
 Spring Boot 단일 서버
   ├─ common
-  │    ├─ AwsConfig                S3Client 빈. 리전 · 자격 증명 · 버킷 이름
-  │    └─ GoogleSheetsConfig       Sheets 서비스 빈. 서비스 계정 키 · 스프레드시트 ID
+  │    ├─ AwsConfig                S3Client 빈. 자격 증명은 인스턴스 IAM 역할
+  │    └─ GoogleSheetsConfig       Sheets 서비스 빈. 키 JSON은 Parameter Store
   ├─ ObituaryController            폼 / 미리보기 / 생성 / 완료
   ├─ AdminController               수정 (X-Admin-Token 확인)
   └─ ObituaryService               ID 발급 · 저장 · 발행 · 수정 · 알림
@@ -80,19 +80,26 @@ Spring Boot 단일 서버
 계층은 Controller → Service → 외부 연동(Sheets / S3)까지만 둔다. Repository/DAO 추상화는 만들지 않는다.
 
 `common`의 설정 클래스는 외부 클라이언트 빈을 조립하는 자리로만 쓴다.
-자격 증명이 환경 변수로 들어오므로 어딘가에서는 빈을 만들어야 하고, 이걸 Client 안에 두면 테스트에서 갈아끼울 수 없다.
+설정 값이 Parameter Store에서 프로퍼티로 들어오므로 어딘가에서는 빈을 조립해야 하고, 이걸 Client 안에 두면 테스트에서 갈아끼울 수 없다.
 DB가 없으니 `DatabaseConfig`는 만들 것이 없고, `ExcelService`는 `GoogleSheetsClient`와 책임이 같아 이름만 둘로 늘어난다.
 
-### 환경 변수
+### 설정 값
 
-| 이름 | 용도 |
-|---|---|
-| `AWS_REGION` · `AWS_ACCESS_KEY_ID` · `AWS_SECRET_ACCESS_KEY` | S3 업로드 자격 증명 |
-| `S3_BUCKET` | 부고장 HTML을 올릴 버킷 |
-| `PUBLIC_BASE_URL` | 공유 링크를 만들 때 붙일 도메인 (`https://obituary.example.com`) |
-| `GOOGLE_CREDENTIALS_PATH` | 서비스 계정 키 파일 경로 |
-| `SPREADSHEET_ID` | `부고장 관리` 스프레드시트 ID |
-| `ADMIN_TOKEN` | `X-Admin-Token` 헤더와 비교할 값 |
+AWS 자격 증명은 두지 않는다. 서버는 Terraform이 붙여 준 IAM 역할로 S3와 Parameter Store에 접근한다.
+나머지 설정은 Parameter Store 한 곳에서 읽는다. 서버에 파일로 떨어뜨리거나 환경 변수로 늘어놓지 않는다.
+
+| 파라미터 | 타입 | 용도 |
+|---|---|---|
+| `/obituary/s3-bucket` | String | 부고장 HTML을 올릴 버킷 |
+| `/obituary/public-base-url` | String | 공유 링크에 붙일 도메인 (`https://obituary.example.com`) |
+| `/obituary/google-credentials` | SecureString | 서비스 계정 키 JSON 본문 |
+| `/obituary/spreadsheet-id` | SecureString | `부고장 관리` 스프레드시트 ID |
+| `/obituary/admin-token` | SecureString | `X-Admin-Token` 헤더와 비교할 값 |
+
+`spring-cloud-aws-starter-parameter-store`를 쓰고 `spring.config.import=aws-parameterstore:/obituary/` 한 줄을 둔다.
+SecureString은 조회 시점에 복호화돼 일반 프로퍼티처럼 들어오므로 값을 가져오는 코드를 따로 쓰지 않는다.
+
+서버에 남는 환경 변수는 리전(`AWS_REGION`) 하나뿐이다. 이것도 EC2에서는 인스턴스 메타데이터로 채워진다.
 
 ---
 
@@ -188,7 +195,8 @@ Google Sheets API  ──▶  Google Sheets (obituaries)
 | 캐시 | CloudFront TTL 60초. 수정 후 무효화 호출 없이 1분 안에 반영된다 |
 | 보관 기간 | S3 라이프사이클 규칙으로 60일 뒤 객체 자동 삭제. 삭제용 코드나 배치 작업은 만들지 않는다 |
 | 데이터 저장 | Google Sheets API (서비스 계정) |
-| 인증 정보 | 서비스 계정 키, 스프레드시트 ID, AWS 자격 증명, 운영자 토큰은 환경 변수로 주입. 저장소에 커밋하지 않는다 |
+| 인증 정보 | AWS는 인스턴스 IAM 역할. 서비스 계정 키·스프레드시트 ID·운영자 토큰은 Parameter Store SecureString. 저장소에 커밋하지 않는다 |
+| 인프라 관리 | Terraform. 버킷·CloudFront·IAM 역할·파라미터를 코드로 만든다 |
 | 운영자 알림 | 서버에서 직접 발송 (채널은 구현 시점 결정) |
 | 배포 | JAR 교체 후 재시작 |
 
@@ -196,8 +204,9 @@ Google Sheets API  ──▶  Google Sheets (obituaries)
 
 - Google Sheets 문서는 서비스 계정 이메일에 편집 권한을 부여한다.
 - 운영자는 같은 스프레드시트를 브라우저에서 열어 확인만 한다. 값을 고칠 때는 `PATCH /admin/obituaries/{id}`를 쓴다.
-- S3 버킷은 CloudFront(OAC)에만 읽기를 허용하고, 쓰기는 애플리케이션 IAM 사용자만 가능하다.
-- `/admin/**`은 환경 변수 `ADMIN_TOKEN`과 `X-Admin-Token` 헤더 비교로만 막는다. 운영자가 한 명이라 Spring Security는 도입하지 않는다.
+- S3 버킷은 CloudFront(OAC)에만 읽기를 허용하고, 쓰기는 서버의 IAM 역할만 가능하다.
+- 서버 IAM 역할에 주는 권한은 세 가지뿐이다. 버킷 하위 객체 쓰기(`s3:PutObject`), `/obituary/` 파라미터 읽기(`ssm:GetParameter*`), SecureString 복호화(`kms:Decrypt`).
+- `/admin/**`은 `/obituary/admin-token` 값과 `X-Admin-Token` 헤더 비교로만 막는다. 운영자가 한 명이라 Spring Security는 도입하지 않는다.
 
 ---
 
