@@ -69,14 +69,13 @@ class ObituaryControllerTest {
     }
 
     @Test
-    void 앞뒤_공백은_잘라서_받는다() throws Exception {
+    void 상주를_두_명_적으면_한_분만_적으라고_알려준다() throws Exception {
         MultiValueMap<String, String> form = filledForm();
-        form.set("name", "  홍길동  ");
-        form.set("room", "  3호실  ");
+        form.set("mournerName", "홍철수 홍영희");
 
         mockMvc.perform(post("/obituaries/preview").params(form))
-                .andExpect(view().name("obituary/preview"))
-                .andExpect(content().string(containsString("서울추모공원 3호실")));
+                .andExpect(view().name("obituary/form"))
+                .andExpect(content().string(containsString("상주는 한 분만, 띄어쓰기 없이 적어 주세요.")));
     }
 
     @Test

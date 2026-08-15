@@ -71,12 +71,33 @@ class ObituaryTest {
     }
 
     @Test
-    void 앞뒤_공백은_잘라내고_바꾼다() {
+    void 공백은_적은_그대로_저장한다() {
         Obituary obituary = sample();
 
-        obituary.applyChanges(Map.of("room", "  5호실  "));
+        obituary.applyChanges(Map.of("room", " 5 호실 "));
 
-        assertThat(obituary.getRoom()).isEqualTo("5호실");
+        assertThat(obituary.getRoom()).isEqualTo(" 5 호실 ");
+        assertThat(obituary.toRow().get(6)).isEqualTo(" 5 호실 ");
+    }
+
+    @Test
+    void 길이는_공백까지_세서_제한한다() {
+        Obituary obituary = sample();
+        obituary.setRoom(" ".repeat(18) + "3호실");
+
+        assertThat(validator.validate(obituary))
+                .extracting(v -> v.getMessage())
+                .containsExactly("빈소는 20자까지 적을 수 있습니다.");
+    }
+
+    @Test
+    void 상주는_한_명만_적을_수_있다() {
+        Obituary obituary = sample();
+        obituary.setMournerName("홍철수 홍영희");
+
+        assertThat(validator.validate(obituary))
+                .extracting(v -> v.getMessage())
+                .containsExactly("상주는 한 분만, 띄어쓰기 없이 적어 주세요.");
     }
 
     @Test
@@ -122,7 +143,7 @@ class ObituaryTest {
         obituary.setName("가".repeat(20));
         obituary.setFuneralHome("나".repeat(30));
         obituary.setRoom("다".repeat(20));
-        obituary.setMournerName("라".repeat(30));
+        obituary.setMournerName("라".repeat(10));
         obituary.setAddress("마".repeat(100));
         obituary.setAccount("바".repeat(50));
 

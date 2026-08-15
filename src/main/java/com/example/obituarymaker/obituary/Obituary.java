@@ -44,7 +44,8 @@ public class Obituary {
     private LocalDate departureDate;
 
     @NotBlank(message = "상주 성함을 입력해 주세요.")
-    @Size(max = 30, message = "상주 성함은 30자까지 적을 수 있습니다.")
+    @Size(max = 10, message = "상주 성함은 10자까지 적을 수 있습니다.")
+    @Pattern(regexp = "[가-힣A-Za-z]*", message = "상주는 한 분만, 띄어쓰기 없이 적어 주세요.")
     private String mournerName;
 
     @NotBlank(message = "상주 연락처를 입력해 주세요.")
@@ -118,6 +119,7 @@ public class Obituary {
         });
     }
 
+    /** 날짜만 파싱 전에 공백을 잘라낸다. 나머지 값은 사용자가 넣은 그대로 저장한다. */
     private static LocalDate parseDate(String value) {
         return value == null || value.isBlank() ? null : LocalDate.parse(value.trim());
     }
@@ -127,7 +129,7 @@ public class Obituary {
     }
 
     private static String text(String value) {
-        return value == null ? "" : value.trim();
+        return value == null ? "" : value;
     }
 
     private static String date(LocalDate value) {
