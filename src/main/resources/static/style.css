@@ -1,0 +1,91 @@
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 24px 20px 48px;
+    font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    font-size: 20px;
+    line-height: 1.7;
+    color: #222;
+    background: #fff;
+}
+
+main { max-width: 520px; margin: 0 auto; }
+
+h1 { font-size: 30px; margin: 8px 0 24px; }
+h2 { font-size: 24px; margin: 32px 0 12px; }
+
+p { margin: 12px 0; }
+
+.guide { color: #555; font-size: 18px; }
+
+label {
+    display: block;
+    margin: 24px 0 8px;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+label .optional { font-weight: normal; color: #777; font-size: 17px; }
+
+input {
+    width: 100%;
+    padding: 14px;
+    font-size: 20px;
+    border: 2px solid #bbb;
+    border-radius: 8px;
+}
+
+input:focus { border-color: #333; outline: none; }
+
+.button {
+    display: block;
+    width: 100%;
+    margin-top: 28px;
+    padding: 18px;
+    font-size: 22px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    color: #fff;
+    background: #2b2b2b;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.button.sub {
+    color: #2b2b2b;
+    background: #fff;
+    border: 2px solid #2b2b2b;
+}
+
+.errors {
+    margin: 20px 0;
+    padding: 16px;
+    color: #a00000;
+    background: #fdeeee;
+    border-radius: 8px;
+}
+
+.errors p { margin: 4px 0; }
+
+.summary { margin: 24px 0; border-top: 2px solid #eee; }
+
+.summary div {
+    display: flex;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 2px solid #eee;
+}
+
+.summary dt, .summary .label { flex: 0 0 110px; color: #666; }
+.summary dd, .summary .value { margin: 0; flex: 1; font-weight: bold; }
+
+.link-box {
+    padding: 16px;
+    font-size: 18px;
+    word-break: break-all;
+    background: #f4f4f4;
+    border-radius: 8px;
+}

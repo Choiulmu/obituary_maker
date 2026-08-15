@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: obituary-maker
+  config:
+    import: optional:aws-parameterstore:/obituary/
+  cloud:
+    aws:
+      region:
+        static: ${AWS_REGION:ap-northeast-2}
+
+# 아래 값은 운영에서 Parameter Store(/obituary/*)가 덮어쓴다. 여기 값은 로컬 실행용 기본값이다.
+s3-bucket: obituary-local
+public-base-url: http://localhost:8080
+google-credentials: ${GOOGLE_CREDENTIALS:}
+spreadsheet-id: ${SPREADSHEET_ID:}
+admin-token: ${ADMIN_TOKEN:}

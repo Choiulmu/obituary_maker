@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>부고장 확인</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<main>
+    <h1>이렇게 만들어집니다</h1>
+    <p class="guide">내용이 맞는지 확인해 주세요. 틀린 내용이 있으면 고칠 수 있습니다.</p>
+
+    <dl class="summary">
+        <div><dt>고인</dt><dd th:text="${obituary.name}"></dd></div>
+        <div><dt>별세일</dt><dd th:text="${obituary.deathDateText}"></dd></div>
+        <div><dt>빈소</dt><dd th:text="${obituary.funeralHome + ' ' + obituary.room}"></dd></div>
+        <div th:unless="${#strings.isEmpty(obituary.address)}"><dt>주소</dt><dd th:text="${obituary.address}"></dd></div>
+        <div><dt>발인일</dt><dd th:text="${obituary.departureDateText}"></dd></div>
+        <div><dt>상주</dt><dd th:text="${obituary.mournerName}"></dd></div>
+        <div><dt>연락처</dt><dd th:text="${obituary.mournerPhone}"></dd></div>
+        <div th:unless="${#strings.isEmpty(obituary.account)}"><dt>조의금 계좌</dt><dd th:text="${obituary.account}"></dd></div>
+    </dl>
+
+    <form th:action="@{/obituaries}" th:object="${obituary}" method="post">
+        <input type="hidden" th:field="*{name}">
+        <input type="hidden" th:field="*{deathDate}">
+        <input type="hidden" th:field="*{funeralHome}">
+        <input type="hidden" th:field="*{room}">
+        <input type="hidden" th:field="*{departureDate}">
+        <input type="hidden" th:field="*{mournerName}">
+        <input type="hidden" th:field="*{mournerPhone}">
+        <input type="hidden" th:field="*{address}">
+        <input type="hidden" th:field="*{account}">
+
+        <button class="button" type="submit">부고장 만들기</button>
+    </form>
+
+    <button class="button sub" type="button" onclick="history.back()">고치기</button>
+</main>
+</body>
+</html>

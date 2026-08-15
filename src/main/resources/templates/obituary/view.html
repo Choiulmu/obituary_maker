@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="'故 ' + ${obituary.name} + ' 부고'">부고</title>
+    <meta property="og:title" th:content="'故 ' + ${obituary.name} + ' 부고'">
+    <meta property="og:description" th:content="${obituary.funeralHome + ' ' + obituary.room + ' · 발인 ' + obituary.departureDateText}">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 40px 20px 56px;
+            font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+            font-size: 20px;
+            line-height: 1.7;
+            color: #222;
+            background: #f7f6f4;
+        }
+        main {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 32px 24px 40px;
+            background: #fff;
+            border-radius: 12px;
+        }
+        .head { text-align: center; padding-bottom: 24px; border-bottom: 2px solid #eee; }
+        .head .title { font-size: 18px; color: #777; letter-spacing: 4px; }
+        .head .name { margin: 12px 0; font-size: 34px; font-weight: bold; }
+        .head .notice { font-size: 19px; color: #555; }
+        dl { margin: 8px 0 0; }
+        .row { display: flex; gap: 16px; padding: 16px 0; border-bottom: 2px solid #eee; }
+        dt { flex: 0 0 96px; color: #777; }
+        dd { flex: 1; margin: 0; font-weight: bold; word-break: break-all; }
+        a { color: #1a4fa0; }
+        .button {
+            display: block;
+            width: 100%;
+            margin-top: 28px;
+            padding: 18px;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            color: #fff;
+            background: #2b2b2b;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <div class="head">
+        <p class="title">부 고</p>
+        <p class="name" th:text="'故 ' + ${obituary.name}"></p>
+        <p class="notice" th:text="${obituary.deathDateText} + '에 별세하셨기에 삼가 알려 드립니다.'"></p>
+    </div>
+
+    <dl>
+        <div class="row"><dt>빈소</dt><dd th:text="${obituary.funeralHome + ' ' + obituary.room}"></dd></div>
+        <div class="row" th:unless="${#strings.isEmpty(obituary.address)}">
+            <dt>장례식장 위치</dt><dd th:text="${obituary.address}"></dd>
+        </div>
+        <div class="row"><dt>발인</dt><dd th:text="${obituary.departureDateText}"></dd></div>
+        <div class="row"><dt>상주</dt><dd th:text="${obituary.mournerName}"></dd></div>
+        <div class="row">
+            <dt>연락처</dt>
+            <dd><a th:href="'tel:' + ${obituary.mournerPhone}" th:text="${obituary.mournerPhone}"></a></dd>
+        </div>
+        <div class="row" th:unless="${#strings.isEmpty(obituary.account)}">
+            <dt>조의금 계좌</dt><dd th:text="${obituary.account}"></dd>
+        </div>
+    </dl>
+
+    <button class="button" type="button" onclick="share()">부고장 보내기</button>
+</main>
+<script>
+    function share() {
+        const url = location.href;
+        if (navigator.share) {
+            navigator.share({ title: document.title, url: url });
+            return;
+        }
+        navigator.clipboard.writeText(url).then(function () {
+            alert('링크를 복사했습니다. 카카오톡에 붙여넣기 해 주세요.');
+        });
+    }
+</script>
+</body>
+</html>
