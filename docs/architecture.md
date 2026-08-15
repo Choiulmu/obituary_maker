@@ -29,17 +29,16 @@ MVP 기준. 데이터 저장소는 Google Sheets 하나, 애플리케이션은 S
 | G | 발인일 | coffinOutDate | O | `2026-08-16` |
 | H | 상주이름 | chiefMournerName | O | `홍철수` |
 | I | 상주연락처 | chiefMournerPhone | O | `010-1234-5678` |
-| J | 고인사진 | photoUrl | X | `/images/a1b2c3d4.jpg` |
-| K | 장례식장주소 | funeralHallAddress | X | `서울시 서초구 원지동 산4-1` |
-| L | 오시는길 | directions | X | `3호선 양재역 4번 출구 셔틀버스` |
-| M | 조의금계좌 | condolenceAccount | X | `국민 123456-01-123456 홍철수` |
-| N | 추가안내문구 | additionalMessage | X | `조화는 정중히 사양합니다` |
-| O | 부고장링크 | shareUrl | O | `https://obituary.example.com/obituaries/a1b2c3d4` |
+| J | 장례식장주소 | funeralHallAddress | X | `서울시 서초구 원지동 산4-1` |
+| K | 오시는길 | directions | X | `3호선 양재역 4번 출구 셔틀버스` |
+| L | 조의금계좌 | condolenceAccount | X | `국민 123456-01-123456 홍철수` |
+| M | 추가안내문구 | additionalMessage | X | `조화는 정중히 사양합니다` |
+| N | 부고장링크 | shareUrl | O | `https://obituary.example.com/obituaries/a1b2c3d4` |
 
 ### 저장 규칙
 
 - 날짜는 `yyyy-MM-dd`, 일시는 `yyyy-MM-dd HH:mm:ss` (KST) 문자열로 저장한다.
-- 선택 항목 미입력 시 빈 문자열로 저장한다. (열 위치가 밀리지 않도록 항상 A~O 전체를 쓴다)
+- 선택 항목 미입력 시 빈 문자열로 저장한다. (열 위치가 밀리지 않도록 항상 A~N 전체를 쓴다)
 - 시트 값은 모두 문자열(`USER_ENTERED` 대신 `RAW`)로 기록한다. Sheets가 `010-1234-5678`을 날짜/수식으로 자동 변환하는 것을 막기 위함이다.
 - 수정/삭제는 하지 않는다. 잘못된 부고장은 운영자가 시트에서 직접 처리한다.
 
@@ -65,7 +64,6 @@ flowchart TB
         sheets[GoogleSheetsClient]
         notifier[운영자 알림]
         thymeleaf[Thymeleaf 템플릿]
-        files[(사진 저장소)]
     end
 
     subgraph external [외부]
@@ -79,7 +77,6 @@ flowchart TB
     controller --> thymeleaf
     service --> sheets
     service --> notifier
-    service --> files
     sheets --> gsheet
     notifier --> admin
     admin --> gsheet
@@ -112,7 +109,6 @@ sequenceDiagram
     U->>C: POST /obituaries
     C->>S: 부고장 생성
     S->>S: 고유 ID 발급 (a1b2c3d4)
-    S->>S: 사진 저장 (선택)
     S->>G: 1행 append
     S->>A: 새 부고장 알림 (링크 포함)
     C-->>U: 302 /obituaries/{id}/complete
@@ -154,7 +150,6 @@ flowchart LR
     kakao[카카오톡 공유 링크] --> dns[도메인<br/>obituary.example.com]
     dns --> https[HTTPS<br/>Let's Encrypt]
     https --> server[서버 1대<br/>Spring Boot JAR]
-    server --> disk[(로컬 디스크<br/>고인 사진)]
     server --> api[Google Sheets API]
     api --> sheet[(Google Sheets)]
 ```
@@ -164,7 +159,6 @@ flowchart LR
 | 실행 | 서버 1대에서 Spring Boot 실행 파일 구동 |
 | 빌드 | Gradle (Java 17, Spring Boot 3.4.5) |
 | HTTPS | 도메인 + 무료 인증서. 카카오톡 링크 미리보기와 신뢰감 확보에 필요 |
-| 사진 저장 | 서버 로컬 디스크. 트래픽이 늘면 외부 스토리지로 이동 |
 | 데이터 저장 | Google Sheets API (서비스 계정) |
 | 인증 정보 | 서비스 계정 키와 스프레드시트 ID는 환경 변수로 주입. 저장소에 커밋하지 않는다 |
 | 운영자 알림 | 서버에서 직접 발송 (채널은 구현 시점 결정) |
@@ -183,6 +177,6 @@ flowchart LR
 - 별도 DB, 캐시 서버
 - CDN
 - 관리자 전용 웹페이지
-- 사진 리사이징 파이프라인
+- 고인 사진 업로드 (파일 저장소 / 리사이징 불필요)
 
 트래픽이나 데이터가 실제로 문제가 될 때 하나씩 추가한다.

@@ -1,7 +1,7 @@
 # API 목록
 
 Thymeleaf 기반 SSR이므로 JSON API가 아닌 **HTML 페이지 / 폼 전송 엔드포인트**로 정의한다.
-(`Content-Type: application/x-www-form-urlencoded`, 사진 포함 시 `multipart/form-data`)
+(`Content-Type: application/x-www-form-urlencoded`)
 
 | 도메인 | Method | Path | 설명 |
 |---|---|---|---|
@@ -36,7 +36,6 @@ Thymeleaf 기반 SSR이므로 JSON API가 아닌 **HTML 페이지 / 폼 전송 �
 | coffinOutDate | 발인일 | O | 2026-08-16 |
 | chiefMournerName | 상주 이름 | O | 홍철수 |
 | chiefMournerPhone | 상주 연락처 | O | 010-1234-5678 |
-| photo | 고인 사진 | X | (파일) |
 | funeralHallAddress | 장례식장 주소 | X | 서울시 서초구 원지동 산4-1 |
 | directions | 오시는 길 | X | 3호선 양재역 4번 출구 셔틀버스 |
 | condolenceAccount | 조의금 계좌 | X | 국민 123456-01-123456 홍철수 |
@@ -66,7 +65,7 @@ condolenceAccount=국민 123456-01-123456 홍철수
 ```
 
 ### POST `/obituaries`
-- Input: 미리보기와 동일한 폼 전체 (사진 포함 시 multipart)
+- Input: 미리보기와 동일한 폼 전체
 - 처리: 고유 ID 발급 → Google Sheets 기록 → 운영자 알림
 - Response (성공): `302 Location: /obituaries/a1b2c3d4/complete`
 - Response (실패): `200` → `obituary/form.html` + `부고장을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.`
@@ -90,7 +89,6 @@ model.deceasedName = 홍길동
 - Output: `obituary/view.html` (모바일 기준)
 - Response (성공): `200`
 ```
-photoUrl            /images/a1b2c3d4.jpg
 deceasedName        홍길동
 deathDate           2026년 8월 14일
 mortuaryRoom        3호실
@@ -113,4 +111,3 @@ additionalMessage   조화는 정중히 사양합니다
 
 - 운영자 알림은 부고장 생성 시 서버 내부에서 처리하며 별도 API로 노출하지 않는다.
 - 수정 / 삭제 API는 MVP 범위 밖이다. (요청 발생 시 추가)
-- 사진 저장 위치(로컬 / 외부 스토리지)는 구현 시점에 결정한다.
