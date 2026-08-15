@@ -71,6 +71,15 @@ class ObituaryTest {
     }
 
     @Test
+    void 앞뒤_공백은_잘라내고_바꾼다() {
+        Obituary obituary = sample();
+
+        obituary.applyChanges(Map.of("room", "  5호실  "));
+
+        assertThat(obituary.getRoom()).isEqualTo("5호실");
+    }
+
+    @Test
     void 모르는_항목은_바꾸지_않고_거절한다() {
         assertThatThrownBy(() -> sample().applyChanges(Map.of("id", "hacked")))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -91,6 +100,32 @@ class ObituaryTest {
         obituary.applyChanges(Map.of("account", ""));
 
         assertThat(obituary.getAccount()).isEmpty();
+        assertThat(validator.validate(obituary)).isEmpty();
+    }
+
+    @Test
+    void 너무_긴_값은_검증에_걸린다() {
+        Obituary obituary = sample();
+        obituary.setName("가".repeat(21));
+        obituary.setAccount("나".repeat(51));
+
+        assertThat(validator.validate(obituary))
+                .extracting(v -> v.getMessage())
+                .containsExactlyInAnyOrder(
+                        "고인의 성함은 20자까지 적을 수 있습니다.",
+                        "조의금 계좌는 50자까지 적을 수 있습니다.");
+    }
+
+    @Test
+    void 길이_제한까지는_통과한다() {
+        Obituary obituary = sample();
+        obituary.setName("가".repeat(20));
+        obituary.setFuneralHome("나".repeat(30));
+        obituary.setRoom("다".repeat(20));
+        obituary.setMournerName("라".repeat(30));
+        obituary.setAddress("마".repeat(100));
+        obituary.setAccount("바".repeat(50));
+
         assertThat(validator.validate(obituary)).isEmpty();
     }
 

@@ -59,6 +59,27 @@ class ObituaryControllerTest {
     }
 
     @Test
+    void 너무_길게_적으면_폼에_길이를_알려준다() throws Exception {
+        MultiValueMap<String, String> form = filledForm();
+        form.set("name", "가".repeat(21));
+
+        mockMvc.perform(post("/obituaries/preview").params(form))
+                .andExpect(view().name("obituary/form"))
+                .andExpect(content().string(containsString("고인의 성함은 20자까지 적을 수 있습니다.")));
+    }
+
+    @Test
+    void 앞뒤_공백은_잘라서_받는다() throws Exception {
+        MultiValueMap<String, String> form = filledForm();
+        form.set("name", "  홍길동  ");
+        form.set("room", "  3호실  ");
+
+        mockMvc.perform(post("/obituaries/preview").params(form))
+                .andExpect(view().name("obituary/preview"))
+                .andExpect(content().string(containsString("서울추모공원 3호실")));
+    }
+
+    @Test
     void 빠진_값이_있으면_폼에_쉬운_안내를_보여준다() throws Exception {
         MultiValueMap<String, String> form = filledForm();
         form.set("name", "");

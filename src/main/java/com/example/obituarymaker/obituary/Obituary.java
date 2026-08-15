@@ -3,6 +3,7 @@ package com.example.obituarymaker.obituary;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,6 +24,7 @@ public class Obituary {
     private String updatedAt = "";
 
     @NotBlank(message = "고인의 성함을 입력해 주세요.")
+    @Size(max = 20, message = "고인의 성함은 20자까지 적을 수 있습니다.")
     private String name;
 
     @NotNull(message = "별세일을 입력해 주세요.")
@@ -30,9 +32,11 @@ public class Obituary {
     private LocalDate deathDate;
 
     @NotBlank(message = "장례식장 이름을 입력해 주세요.")
+    @Size(max = 30, message = "장례식장 이름은 30자까지 적을 수 있습니다.")
     private String funeralHome;
 
     @NotBlank(message = "빈소를 입력해 주세요.")
+    @Size(max = 20, message = "빈소는 20자까지 적을 수 있습니다.")
     private String room;
 
     @NotNull(message = "발인일을 입력해 주세요.")
@@ -40,14 +44,17 @@ public class Obituary {
     private LocalDate departureDate;
 
     @NotBlank(message = "상주 성함을 입력해 주세요.")
+    @Size(max = 30, message = "상주 성함은 30자까지 적을 수 있습니다.")
     private String mournerName;
 
     @NotBlank(message = "상주 연락처를 입력해 주세요.")
     @Pattern(regexp = "|0\\d{1,2}-\\d{3,4}-\\d{4}", message = "연락처를 010-1234-5678 형식으로 입력해 주세요.")
     private String mournerPhone;
 
+    @Size(max = 100, message = "장례식장 주소는 100자까지 적을 수 있습니다.")
     private String address = "";
 
+    @Size(max = 50, message = "조의금 계좌는 50자까지 적을 수 있습니다.")
     private String account = "";
 
     private String shareUrl;
@@ -94,7 +101,8 @@ public class Obituary {
      * 값이 빈 문자열이면 선택 항목은 지워지고, 필수 항목은 이어지는 검증에서 걸린다.
      */
     public void applyChanges(Map<String, String> changes) {
-        changes.forEach((field, value) -> {
+        changes.forEach((field, rawValue) -> {
+            String value = text(rawValue);
             switch (field) {
                 case "name" -> name = value;
                 case "deathDate" -> deathDate = parseDate(value);
