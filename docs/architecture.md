@@ -21,7 +21,7 @@ MVP 기준. 데이터는 Google Sheets에 기록하고, 발행된 부고장은 S
 
 | 열 | 컬럼명 | 필드 | 필수 | 예시 |
 |---|---|---|---|---|
-| A | 부고장ID | id | O | `a1b2c3d4` |
+| A | 부고장ID | id | O | `a1b2c3d4e5f60718` |
 | B | 생성일시 | createdAt | O | `2026-08-15 14:32:10` |
 | C | 수정일시 | updatedAt | X | `2026-08-15 16:04:22` |
 | D | 고인이름 | name | O | `홍길동` |
@@ -33,7 +33,7 @@ MVP 기준. 데이터는 Google Sheets에 기록하고, 발행된 부고장은 S
 | J | 상주연락처 | mournerPhone | O | `010-1234-5678` |
 | K | 장례식장주소 | address | X | `서울시 서초구 원지동 산4-1` |
 | L | 조의금계좌 | account | X | `국민 123456-01-123456 홍철수` |
-| M | 부고장링크 | shareUrl | O | `https://obituary.example.com/a1b2c3d4/` |
+| M | 부고장링크 | shareUrl | O | `https://obituary.example.com/a1b2c3d4e5f60718/` |
 
 ### 저장 규칙
 
@@ -44,6 +44,9 @@ MVP 기준. 데이터는 Google Sheets에 기록하고, 발행된 부고장은 S
 - 시트 값은 모두 문자열(`USER_ENTERED` 대신 `RAW`)로 기록한다. Sheets가 `010-1234-5678`을 날짜/수식으로 자동 변환하는 것을 막기 위함이다.
 - 수정일시(C)는 생성 시 빈 문자열로 두고, 수정 API가 호출될 때만 채운다. 비어 있으면 한 번도 고치지 않은 건이라는 뜻이다.
 - 시트를 바꾸는 것은 생성 시 append와 수정 API의 행 갱신 두 가지뿐이다. 운영자가 브라우저에서 시트를 직접 고치면 S3의 HTML과 값이 어긋난다.
+- 값 앞뒤 공백은 저장 전에 잘라낸다. 시트에서 눈으로는 구분되지 않는데 ID 비교에는 걸린다.
+- 고객이 넣는 값(D~L)의 길이는 [api.md의 입력 필드](./api.md#입력-필드)에 정한 만큼으로 제한한다. 시트 용량이 아니라 부고장 화면이 기준이다.
+- 부고장ID(A)는 16자 랜덤 hex다. 원래 예시는 8자였는데, 발행된 URL이 인증 없이 열리고 상주 연락처가 들어 있어 길이를 늘렸다. 손으로 칠 일이 없는 값이라 길어도 불편하지 않다.
 
 ### 조회
 
@@ -63,7 +66,6 @@ A열(부고장ID)로 행을 찾으며, MVP 데이터량 기준으로는 시트 �
 
 Spring Boot 단일 서버
   ├─ common
-  │    ├─ AwsConfig                S3Client 빈. 자격 증명은 인스턴스 IAM 역할
   │    └─ GoogleSheetsConfig       Sheets 서비스 빈. 키 JSON은 Parameter Store
   ├─ ObituaryController            폼 / 미리보기 / 생성 / 완료
   ├─ AdminController               수정 (X-Admin-Token 확인)
@@ -82,6 +84,9 @@ Spring Boot 단일 서버
 `common`의 설정 클래스는 외부 클라이언트 빈을 조립하는 자리로만 쓴다.
 설정 값이 Parameter Store에서 프로퍼티로 들어오므로 어딘가에서는 빈을 조립해야 하고, 이걸 Client 안에 두면 테스트에서 갈아끼울 수 없다.
 DB가 없으니 `DatabaseConfig`는 만들 것이 없고, `ExcelService`는 `GoogleSheetsClient`와 책임이 같아 이름만 둘로 늘어난다.
+
+`AwsConfig`도 두지 않는다. `spring-cloud-aws-starter-s3`가 리전과 IAM 역할을 읽어 `S3Client` 빈을 이미 만들어 주므로, 같은 것을 다시 조립하는 빈 클래스만 남는다.
+Sheets는 스타터가 없어서 `GoogleSheetsConfig`가 필요하다.
 
 ### 설정 값
 
@@ -113,14 +118,17 @@ SecureString은 조회 시점에 복호화돼 일반 프로퍼티처럼 들어�
      검증 통과  ──▶  미리보기 화면
 
 3. 작성자  POST /obituaries
-     3-1. 고유 ID 발급 (a1b2c3d4)
+     3-1. 고유 ID 발급 (16자 랜덤 hex, a1b2c3d4e5f60718)
      3-2. S3      {id}/index.html 업로드  ──▶  공유 링크 확정
      3-3. Sheets  1행 append (M열에 공유 링크 포함)
      3-4. 운영자 알림 (링크 + 수정 curl 명령)
      3-5. 302 Location: /obituaries/{id}/complete
 
-4. 작성자  GET  /obituaries/{id}/complete   ──▶  링크 복사 / 카카오톡 공유 버튼
+4. 작성자  GET  /obituaries/{id}/complete   ──▶  부고장 보내기 / 링크 복사 버튼
 ```
+
+공유는 카카오 SDK 없이 브라우저의 `navigator.share`로 한다. 휴대폰에서는 카카오톡이 들어 있는 공유 화면이 뜨고, 지원하지 않는 브라우저에서는 링크 복사로 넘어간다.
+SDK를 붙이면 앱 키와 도메인 등록을 관리해야 하는데, 얻는 것이 공유 화면 모양뿐이라 MVP에서는 두지 않는다.
 
 S3 업로드(3-2)를 시트 기록(3-3)보다 먼저 한다. 반대 순서로 하다 S3에서 실패하면 시트에는 있는데 열리지 않는 링크가 남고, 운영자는 정상 건과 구분할 수 없다.
 
@@ -129,11 +137,11 @@ S3 업로드(3-2)를 시트 기록(3-3)보다 먼저 한다. 반대 순서로 �
 ## 4. 조회 Flow
 
 ```text
-수신자  GET  https://obituary.example.com/a1b2c3d4/
+수신자  GET  https://obituary.example.com/a1b2c3d4e5f60718/
 
   CloudFront 캐시 있음                    ──▶  200  부고장 페이지
   CloudFront 캐시 없음
-      └─ S3  a1b2c3d4/index.html 있음     ──▶  200  부고장 페이지 (60초 캐시)
+      └─ S3  a1b2c3d4e5f60718/index.html 있음     ──▶  200  부고장 페이지 (60초 캐시)
          S3  객체 없음                    ──▶  404  404.html
                                                "부고장을 찾을 수 없습니다"
 ```
@@ -230,3 +238,17 @@ Google Sheets API  ──▶  Google Sheets (obituaries)
 - 전체 부고장 일괄 재발행
 
 트래픽이나 데이터가 실제로 문제가 될 때 하나씩 추가한다.
+
+---
+
+## 9. 변경 이력
+
+### 2026-08-15 — MVP 구현하며 맞춘 내용
+
+| 항목 | 전 | 후 | 이유 |
+|---|---|---|---|
+| `common/AwsConfig` | 둔다 | 두지 않는다 | `spring-cloud-aws-starter-s3`가 `S3Client` 빈을 이미 만든다. 같은 것을 다시 조립하는 빈 클래스만 남는다 |
+| 부고장 ID | 8자 | 16자 랜덤 hex | 발행된 URL은 인증 없이 열리고 상주 연락처가 들어 있다 |
+| 공유 방식 | 카카오톡 공유 버튼 | `navigator.share` (미지원 시 링크 복사) | 앱 키·도메인 등록을 관리하지 않아도 된다 |
+| 시트 저장 값 | 규정 없음 | 앞뒤 공백을 잘라 저장 · 길이 제한 | 눈에 안 보이는 공백이 ID 비교에 걸린다. 길이는 부고장 화면 기준 |
+| 리전 설정 | `AWS_REGION` 환경 변수만 | `spring.cloud.aws.region.static`에 기본값 | 환경 변수가 없는 로컬에서도 뜬다. EC2에서는 환경 변수가 이긴다 |
