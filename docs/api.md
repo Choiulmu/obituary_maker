@@ -41,9 +41,7 @@ Thymeleaf 기반 SSR이므로 JSON API가 아닌 **HTML 페이지 / 폼 전송 �
 | `mournerName` | 상주 이름 | O | 홍철수 |
 | `mournerPhone` | 상주 연락처 | O | 010-1234-5678 |
 | `address` | 장례식장 주소 | X | 서울시 서초구 원지동 산4-1 |
-| `directions` | 오시는 길 | X | 3호선 양재역 4번 출구 셔틀버스 |
 | `account` | 조의금 계좌 | X | 국민 123456-01-123456 홍철수 |
-| `message` | 추가 안내 문구 | X | 조화는 정중히 사양합니다 |
 
 ### GET `/obituaries/new`
 - Output: `obituary/form.html`
@@ -70,7 +68,7 @@ account=국민 123456-01-123456 홍철수
 
 ### POST `/obituaries`
 - Input: 미리보기와 동일한 폼 전체
-- 처리: 고유 ID 발급 → Google Sheets 기록 → 부고장 HTML 렌더 → S3 `{id}/index.html` 업로드 → 운영자 알림
+- 처리: 고유 ID 발급 → 부고장 HTML 렌더 → S3 `{id}/index.html` 업로드 → 공유 링크 포함해 Google Sheets 기록 → 운영자 알림
 - Response (성공): `302 Location: /obituaries/a1b2c3d4/complete`
 - Response (실패): `200` → `obituary/form.html` + `부고장을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.`
 
@@ -107,7 +105,6 @@ departureDate  2026년 8월 16일
 mournerName    홍철수
 mournerPhone   010-1234-5678
 account        국민 123456-01-123456 홍철수
-message        조화는 정중히 사양합니다
 ```
 - Response (없는 링크): `404` → S3 에러 문서 `404.html`
 ```
