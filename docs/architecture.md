@@ -62,6 +62,9 @@ A열(부고장ID)로 행을 찾으며, MVP 데이터량 기준으로는 시트 �
   └─ 수신자 (카카오톡 링크)    ──▶  CloudFront  ──▶  S3
 
 Spring Boot 단일 서버
+  ├─ common
+  │    ├─ AwsConfig                S3Client 빈. 리전 · 자격 증명 · 버킷 이름
+  │    └─ GoogleSheetsConfig       Sheets 서비스 빈. 서비스 계정 키 · 스프레드시트 ID
   ├─ ObituaryController            폼 / 미리보기 / 생성 / 완료
   ├─ AdminController               수정 (X-Admin-Token 확인)
   └─ ObituaryService               ID 발급 · 저장 · 발행 · 수정 · 알림
@@ -75,6 +78,21 @@ Spring Boot 단일 서버
 ```
 
 계층은 Controller → Service → 외부 연동(Sheets / S3)까지만 둔다. Repository/DAO 추상화는 만들지 않는다.
+
+`common`의 설정 클래스는 외부 클라이언트 빈을 조립하는 자리로만 쓴다.
+자격 증명이 환경 변수로 들어오므로 어딘가에서는 빈을 만들어야 하고, 이걸 Client 안에 두면 테스트에서 갈아끼울 수 없다.
+DB가 없으니 `DatabaseConfig`는 만들 것이 없고, `ExcelService`는 `GoogleSheetsClient`와 책임이 같아 이름만 둘로 늘어난다.
+
+### 환경 변수
+
+| 이름 | 용도 |
+|---|---|
+| `AWS_REGION` · `AWS_ACCESS_KEY_ID` · `AWS_SECRET_ACCESS_KEY` | S3 업로드 자격 증명 |
+| `S3_BUCKET` | 부고장 HTML을 올릴 버킷 |
+| `PUBLIC_BASE_URL` | 공유 링크를 만들 때 붙일 도메인 (`https://obituary.example.com`) |
+| `GOOGLE_CREDENTIALS_PATH` | 서비스 계정 키 파일 경로 |
+| `SPREADSHEET_ID` | `부고장 관리` 스프레드시트 ID |
+| `ADMIN_TOKEN` | `X-Admin-Token` 헤더와 비교할 값 |
 
 ---
 
