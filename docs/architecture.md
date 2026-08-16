@@ -210,11 +210,25 @@ S3 버킷  {id}/index.html          ◀── 퍼블릭 읽기 · HTTPS 기본 �
 | 보관 기간 | S3 라이프사이클 규칙으로 60일 뒤 객체 자동 삭제. 삭제용 코드나 배치 작업은 만들지 않는다 |
 | 데이터 저장 | Google Sheets API (서비스 계정) |
 | 인증 정보 | AWS 액세스 키는 인스턴스의 `~/.aws/credentials`. 서비스 계정 키·스프레드시트 ID·운영자 토큰은 Parameter Store SecureString. 저장소에 커밋하지 않는다 |
-| 인프라 관리 | 콘솔에서 손으로 만든다. 리소스가 7개뿐이라 Terraform을 두지 않는다 |
+| 인프라 관리 | Terraform. 별도 저장소 [obituary_maker_infra](https://github.com/Choiulmu/obituary_maker_infra)에서 관리한다 |
 | 운영자 알림 | 서버에서 직접 발송 (채널은 구현 시점 결정) |
 | 배포 | JAR 교체 후 재시작 |
 
 리소스는 Lightsail 인스턴스 · 고정 IP · 방화벽 · Lightsail 배포판 · S3 버킷 · IAM 사용자 · Parameter Store 일곱 개다.
+
+### 인프라 관리
+
+일곱 개 리소스를 모두 `obituary_maker_infra` 저장소의 Terraform으로 만든다.
+콘솔에서 만들면 어떤 값으로 설정했는지가 아무 데도 남지 않아서, 다시 만들 때 기억에 의존하게 된다.
+
+두 가지는 Terraform에 두지 않고 apply 뒤에 콘솔에서 넣는다. 시크릿이라 state에 평문으로 남기 때문이다.
+
+- Parameter Store의 SecureString 세 개 값 (`google-credentials`, `spreadsheet-id`, `admin-token`). Terraform은 이름·타입만 만들고 값은 `sample`로 둔 뒤 변경을 무시한다.
+- IAM 사용자 `obituary-app`의 액세스 키. 발급해서 인스턴스의 `~/.aws/credentials`에 둔다.
+
+`/obituary/s3-bucket`만 Terraform이 실제 값까지 관리한다. 이 값이 어긋나면 앱이 없는 버킷에 업로드한다.
+
+state는 로컬 파일에 두고 커밋하지 않는다. 인프라를 만지는 사람이 한 명이라 원격 백엔드를 두지 않는다.
 
 ### 도메인을 나중에 붙일 때
 
@@ -282,3 +296,11 @@ S3 버킷  {id}/index.html          ◀── 퍼블릭 읽기 · HTTPS 기본 �
 | 공유 URL | `/{id}/` | `/{id}/index.html` | REST 엔드포인트는 디렉터리 인덱스를 해주지 않는다 |
 | 404 안내 문서 | `404.html` | 없음 (S3 XML 에러) | 에러 문서는 웹사이트 엔드포인트나 CloudFront에서만 지정할 수 있다 |
 | 인프라 관리 | Terraform | 콘솔에서 직접 | 리소스가 7개고 바뀔 일이 드물다 |
+
+### 2026-08-16 — 인프라를 다시 Terraform으로
+
+| 항목 | 전 | 후 | 이유 |
+|---|---|---|---|
+| 인프라 관리 | 콘솔에서 직접 | Terraform (`obituary_maker_infra` 저장소) | 같은 날 콘솔로 정했다가 되돌렸다. 리소스가 적은 것과 설정을 기억에 남기는 것은 다른 문제다. 어떤 값으로 만들었는지가 코드로 남아야 다시 만들 수 있다 |
+| 시크릿 | 규정 없음 | Terraform은 파라미터 이름·타입만. 값과 액세스 키는 콘솔 | state에 평문으로 남기지 않기 위해서다 |
+| state | 규정 없음 | 로컬 파일. 커밋하지 않는다 | 인프라를 만지는 사람이 한 명이라 원격 백엔드가 벌어주는 것이 없다 |
