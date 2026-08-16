@@ -55,6 +55,8 @@ public class Obituary {
     @Size(max = 100, message = "장례식장 주소는 100자까지 적을 수 있습니다.")
     private String address = "";
 
+    //TODO: 조의금 계좌(한국 은행 목록 - 라이브러리 없나)
+
     @Size(max = 50, message = "조의금 계좌는 50자까지 적을 수 있습니다.")
     private String account = "";
 

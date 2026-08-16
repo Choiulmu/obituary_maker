@@ -37,6 +37,7 @@ public class AdminController {
                                          @RequestHeader(name = "X-Admin-Token", required = false) String token,
                                          @RequestParam Map<String, String> changes) {
         if (!hasValidToken(token)) {
+            //TODO: error 전환 + GlobalExceptionHandler에서 처리
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("권한이 없습니다.");
         }
         try {

@@ -43,6 +43,7 @@ public class GoogleSheetsClient {
     }
 
     public void update(Obituary obituary) throws IOException {
+        // Google Sheets A1 notation: 시트의 특정 행에서 A열부터 M열까지의 범위
         String range = "%s!A%d:M%d".formatted(SHEET, obituary.getRowNumber(), obituary.getRowNumber());
         sheets.spreadsheets().values()
                 .update(spreadsheetId, range, new ValueRange().setValues(List.of(obituary.toRow())))

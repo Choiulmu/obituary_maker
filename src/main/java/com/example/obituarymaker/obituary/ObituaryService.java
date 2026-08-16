@@ -50,6 +50,8 @@ public class ObituaryService {
         return obituary.getId();
     }
 
+    //TODO: 트랜잭션 추가
+
     /**
      * 시트 갱신을 S3 업로드보다 먼저 한다.
      * 시트가 원본이므로 S3에서 실패하면 같은 요청을 다시 보내 맞출 수 있다.
@@ -71,9 +73,9 @@ public class ObituaryService {
     }
 
     private void validate(Obituary obituary) {
-        Set<ConstraintViolation<Obituary>> violations = validator.validate(obituary);
+        Set<ConstraintViolation<Obituary>> violations = validator.validate(obituary); // TODO: 무슨 로직인지 확인 필요
         if (!violations.isEmpty()) {
-            throw new IllegalArgumentException(violations.stream()
+            throw new IllegalArgumentException(violations.stream() //TODO: 예외 추가
                     .map(ConstraintViolation::getMessage)
                     .collect(Collectors.joining(" ")));
         }
