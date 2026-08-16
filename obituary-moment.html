@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7f4ee">
+  <title>부고 — 故 홍길동</title>
+  <link rel="stylesheet" href="obituary-moment.css">
+</head>
+<body>
+  <main class="obituary-page">
+
+    <!-- Cover -->
+    <section class="cover" aria-labelledby="deceased-name">
+      <div class="cover__inner">
+        <p class="cover__eyebrow">부 고</p>
+
+        <div class="cover__portrait" aria-label="고인 사진">
+          <div class="cover__portrait-placeholder">故</div>
+        </div>
+
+        <p class="cover__prefix">故</p>
+        <h1 class="cover__name" id="deceased-name">홍 길 동</h1>
+        <p class="cover__years">1942 — 2026</p>
+
+        <div class="cover__divider" aria-hidden="true"></div>
+
+        <p class="cover__message">
+          2026년 8월 13일, 향년 84세로<br>
+          별세하셨음을 삼가 알려드립니다.
+        </p>
+      </div>
+
+      <div class="cover__scroll" aria-hidden="true">
+        <span>SCROLL</span>
+        <i></i>
+      </div>
+    </section>
+
+    <!-- Funeral information -->
+    <section class="section funeral-section" aria-labelledby="funeral-title">
+      <div class="section__heading">
+        <p class="section__eyebrow">FUNERAL</p>
+        <h2 id="funeral-title">장례 안내</h2>
+      </div>
+
+      <div class="info-list">
+        <article class="info-item">
+          <p class="info-item__label">빈소</p>
+          <p class="info-item__value">
+            서울추모의집 장례식장
+            <span>3층 5호실</span>
+          </p>
+        </article>
+
+        <article class="info-item">
+          <p class="info-item__label">발인</p>
+          <p class="info-item__value">
+            2026년 8월 15일
+            <span>오전 8시</span>
+          </p>
+        </article>
+
+        <article class="info-item">
+          <p class="info-item__label">위치</p>
+          <p class="info-item__value">
+            서울시 강남구 자곡로 100
+          </p>
+          <a class="text-action" href="https://map.kakao.com/?q=서울시%20강남구%20자곡로%20100"
+             target="_blank" rel="noopener">
+            지도에서 길 찾기 <span>↗</span>
+          </a>
+        </article>
+      </div>
+    </section>
+
+    <!-- Family -->
+    <section class="section family-section" aria-labelledby="family-title">
+      <div class="section__heading">
+        <p class="section__eyebrow">FAMILY</p>
+        <h2 id="family-title">상주</h2>
+      </div>
+
+      <div class="family-card">
+        <div>
+          <p class="family-card__name">홍만수</p>
+          <p class="family-card__relation">상주</p>
+        </div>
+        <a class="circle-action" href="tel:010-1234-5678" aria-label="홍만수에게 전화하기">☎</a>
+      </div>
+    </section>
+
+    <!-- Condolence money -->
+    <section class="section account-section" aria-labelledby="account-title">
+      <div class="section__heading">
+        <p class="section__eyebrow">CONDOLENCE</p>
+        <h2 id="account-title">조의금 안내</h2>
+      </div>
+
+      <div class="account">
+        <p class="account__bank">국민은행</p>
+        <p class="account__number">123456-78-901234</p>
+        <p class="account__holder">예금주 홍만수</p>
+        <button type="button" class="account__copy" id="btn-copy-account">
+          계좌번호 복사
+        </button>
+      </div>
+    </section>
+
+    <!-- Closing -->
+    <section class="closing">
+      <div class="closing__mark">故</div>
+      <p class="closing__message">
+        고인의 평안한 안식을 바라며<br>
+        삼가 고인의 명복을 빕니다.
+      </p>
+
+      <button type="button" class="share-button" id="btn-share">
+        부고장 보내기
+      </button>
+
+      <p class="closing__note">이 링크를 가족과 지인에게 전해 주세요.</p>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <script>
+    const toast = document.getElementById('toast');
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('is-visible');
+      window.setTimeout(() => toast.classList.remove('is-visible'), 2200);
+    }
+
+    document.getElementById('btn-copy-account').addEventListener('click', async () => {
+      const account = '123456-78-901234';
+
+      try {
+        await navigator.clipboard.writeText(account);
+        showToast('계좌번호가 복사되었습니다.');
+      } catch {
+        showToast('계좌번호를 복사하지 못했습니다.');
+      }
+    });
+
+    document.getElementById('btn-share').addEventListener('click', async () => {
+      const shareData = {
+        title: '부고 안내',
+        text: '삼가 고인의 명복을 빕니다.',
+        url: window.location.href
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+        } else {
+          await navigator.clipboard.writeText(window.location.href);
+          showToast('부고장 링크가 복사되었습니다.');
+        }
+      } catch {
+        // 사용자가 공유 창을 닫은 경우 아무 동작도 하지 않습니다.
+      }
+    });
+  </script>
+</body>
+</html>
