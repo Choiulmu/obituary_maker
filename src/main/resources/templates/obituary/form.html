@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>부고 정보 입력</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<main>
+    <h1>부고 정보 입력</h1>
+    <p class="guide">아래 내용을 적어 주세요. 다음 화면에서 확인할 수 있습니다.</p>
+
+    <form th:action="@{/obituaries/preview}" th:object="${obituary}" method="post">
+        <div class="errors" th:if="${#fields.hasAnyErrors()}">
+            <p th:each="error : ${#fields.allErrors()}" th:text="${error}"></p>
+        </div>
+
+        <label>고인 성함
+            <input type="text" th:field="*{name}" maxlength="20" placeholder="홍길동">
+        </label>
+
+        <label>별세일
+            <input type="date" th:field="*{deathDate}">
+        </label>
+
+        <label>장례식장
+            <input type="text" th:field="*{funeralHome}" maxlength="30" placeholder="서울추모공원">
+        </label>
+
+        <label>빈소
+            <input type="text" th:field="*{room}" maxlength="20" placeholder="3호실">
+        </label>
+
+        <label>발인일
+            <input type="date" th:field="*{departureDate}">
+        </label>
+
+        <label>상주 성함 <span class="optional">(한 분만)</span>
+            <input type="text" th:field="*{mournerName}" maxlength="10" placeholder="홍철수">
+        </label>
+
+        <label>상주 연락처
+            <input type="tel" th:field="*{mournerPhone}" maxlength="13" placeholder="010-1234-5678">
+        </label>
+
+        <label>장례식장 주소 <span class="optional">(안 적어도 됩니다)</span>
+            <input type="text" th:field="*{address}" maxlength="100" placeholder="서울시 서초구 원지동 산4-1">
+        </label>
+
+        <label>조의금 계좌 <span class="optional">(안 적어도 됩니다)</span>
+            <input type="text" th:field="*{account}" maxlength="50" placeholder="국민 123456-01-123456 홍철수">
+        </label>
+
+        <button class="button" type="submit">다음 (확인하기)</button>
+    </form>
+</main>
+</body>
+</html>

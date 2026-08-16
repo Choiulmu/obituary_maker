@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>부고장이 만들어졌습니다</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<main>
+    <h1>부고장이 만들어졌습니다</h1>
+    <p class="guide" th:if="${name}" th:text="'故 ' + ${name} + ' 님의 부고장입니다.'"></p>
+    <p class="guide">아래 버튼을 눌러 가족과 지인에게 보내 주세요.</p>
+
+    <p class="link-box" th:text="${shareUrl}"></p>
+
+    <button class="button" type="button" onclick="share()">부고장 보내기</button>
+    <button class="button sub" type="button" onclick="copyLink()">링크 복사하기</button>
+    <a class="button sub" th:href="${shareUrl}">부고장 보기</a>
+</main>
+<script th:inline="javascript">
+    const shareUrl = /*[[${shareUrl}]]*/ '';
+
+    function share() {
+        if (navigator.share) {
+            navigator.share({ title: '부고', url: shareUrl });
+            return;
+        }
+        copyLink();
+    }
+
+    function copyLink() {
+        navigator.clipboard.writeText(shareUrl).then(function () {
+            alert('링크를 복사했습니다. 카카오톡에 붙여넣기 해 주세요.');
+        });
+    }
+</script>
+</body>
+</html>
