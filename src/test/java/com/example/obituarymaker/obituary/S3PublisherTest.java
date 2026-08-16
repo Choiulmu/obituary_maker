@@ -70,11 +70,12 @@ class S3PublisherTest {
                 StandardCharsets.UTF_8);
         assertThat(html)
                 .contains("故 홍길동")
-                .contains("2026년 8월 14일에 별세하셨기에")
-                .contains("서울추모공원 3호실")
+                .contains("2026년 8월 14일,")
+                .contains("서울추모공원")
+                .contains("3호실")
                 .contains("2026년 8월 16일")
                 .contains("tel:010-1234-5678")
-                .doesNotContain("조의금 계좌")
-                .doesNotContain("장례식장 위치");
+                .doesNotContain("조의금 안내")
+                .doesNotContain("지도에서 길 찾기");
     }
 }
