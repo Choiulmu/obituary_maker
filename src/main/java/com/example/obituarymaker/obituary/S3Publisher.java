@@ -29,8 +29,12 @@ public class S3Publisher {
         this.publicBaseUrl = publicBaseUrl;
     }
 
+    /**
+     * S3 REST 엔드포인트는 디렉터리 인덱스를 해주지 않아 `index.html`까지 붙인다.
+     * 나중에 CloudFront를 앞에 두면 `/{id}/`로 줄일 수 있다.
+     */
     public String shareUrl(String id) {
-        return publicBaseUrl + "/" + id + "/";
+        return publicBaseUrl + "/" + id + "/index.html";
     }
 
     public void publish(Obituary obituary) {

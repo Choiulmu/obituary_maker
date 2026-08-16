@@ -50,8 +50,8 @@ class S3PublisherTest {
     }
 
     @Test
-    void 공유_링크는_아이디_뒤에_슬래시가_붙는다() {
-        assertThat(publisher.shareUrl("a1b2c3d4")).isEqualTo("https://obituary.example.com/a1b2c3d4/");
+    void 공유_링크는_업로드한_객체_주소와_같다() {
+        assertThat(publisher.shareUrl("a1b2c3d4")).isEqualTo("https://obituary.example.com/a1b2c3d4/index.html");
     }
 
     @Test
