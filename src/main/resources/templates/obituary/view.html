@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f8f6f1">
+    <title th:text="'故 ' + ${obituary.name} + ' 부고'">부고</title>
+    <meta property="og:title" th:content="'故 ' + ${obituary.name} + ' 부고'">
+    <meta property="og:description" th:content="${obituary.funeralHome + ' ' + obituary.room + ' · 발인 ' + obituary.departureDateText}">
+    <style>
+        :root {
+            --page: #ebe8e1;
+            --paper: #f8f6f1;
+            --paper-soft: #f1eee7;
+            --ink: #2c2a27;
+            --ink-soft: #77726a;
+            --muted: #9a958c;
+            --line: #ded9d0;
+            --accent: #81786c;
+            --white: #ffffff;
+            --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+            --serif: "Iowan Old Style", "Baskerville", "Times New Roman", serif;
+            --max-width: 430px;
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            background: var(--page);
+            color: var(--ink);
+            font-family: var(--font);
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.7;
+        }
+
+        button, a { font: inherit; }
+        button { cursor: pointer; }
+        a { color: inherit; text-decoration: none; }
+
+        .obituary-page {
+            width: 100%;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            overflow: hidden;
+            background: var(--paper);
+        }
+
+        /* ---------- Cover ---------- */
+
+        .cover {
+            position: relative;
+            min-height: 100svh;
+            min-height: 760px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 72px 28px 110px;
+            text-align: center;
+        }
+
+        .cover__inner {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .cover__eyebrow {
+            margin: 0 0 52px;
+            color: var(--ink-soft);
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.52em;
+            padding-left: 0.52em;
+        }
+
+        .cover__portrait {
+            width: 142px;
+            height: 178px;
+            margin-bottom: 36px;
+            overflow: hidden;
+            background: var(--paper-soft);
+            border-radius: 70px 70px 0 0;
+        }
+
+        .cover__portrait-placeholder {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            place-items: center;
+            color: var(--accent);
+            font-family: var(--serif);
+            font-size: 28px;
+        }
+
+        .cover__prefix {
+            margin: 0 0 5px;
+            color: var(--ink-soft);
+            font-family: var(--serif);
+            font-size: 21px;
+        }
+
+        .cover__name {
+            margin: 0;
+            font-size: 44px;
+            font-weight: 600;
+            letter-spacing: 0.13em;
+            line-height: 1.35;
+        }
+
+        .cover__divider {
+            width: 1px;
+            height: 42px;
+            margin: 28px 0;
+            background: var(--line);
+        }
+
+        .cover__message {
+            margin: 0;
+            color: var(--ink-soft);
+            font-size: 19px;
+            line-height: 2;
+        }
+
+        .cover__scroll {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transform: translateX(-50%);
+            color: var(--muted);
+        }
+
+        .cover__scroll span {
+            font-family: var(--serif);
+            font-size: 10px;
+            letter-spacing: 0.2em;
+        }
+
+        .cover__scroll i {
+            width: 1px;
+            height: 28px;
+            background: var(--line);
+        }
+
+        /* ---------- Common section ---------- */
+
+        .section {
+            padding: 92px 28px;
+            border-top: 1px solid var(--line);
+        }
+
+        .section__heading { margin-bottom: 42px; }
+
+        .section__eyebrow {
+            margin: 0 0 8px;
+            color: var(--accent);
+            font-family: var(--serif);
+            font-size: 12px;
+            letter-spacing: 0.2em;
+        }
+
+        .section h2 {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 600;
+            letter-spacing: -0.04em;
+        }
+
+        /* ---------- Funeral ---------- */
+
+        .info-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-item {
+            position: relative;
+            padding: 24px 0;
+            border-top: 1px solid var(--line);
+        }
+
+        .info-item:last-child { border-bottom: 1px solid var(--line); }
+
+        .info-item__label {
+            margin: 0 0 7px;
+            color: var(--muted);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .info-item__value {
+            margin: 0;
+            font-size: 21px;
+            font-weight: 500;
+            line-height: 1.65;
+        }
+
+        .info-item__value span {
+            display: block;
+            color: var(--ink-soft);
+            font-size: 18px;
+            font-weight: 400;
+        }
+
+        .text-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 13px;
+            padding-bottom: 2px;
+            border-bottom: 1px solid var(--accent);
+            color: var(--accent);
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .text-action span { font-size: 19px; }
+
+        /* ---------- Family ---------- */
+
+        .family-section { background: var(--paper-soft); }
+
+        .family-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px 0;
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .family-card__name {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .family-card__relation {
+            margin: 2px 0 0;
+            color: var(--muted);
+            font-size: 17px;
+        }
+
+        .circle-action {
+            flex-shrink: 0;
+            width: 58px;
+            height: 58px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--line);
+            border-radius: 50%;
+            background: var(--paper);
+            color: var(--accent);
+            font-size: 21px;
+        }
+
+        /* ---------- Account ---------- */
+
+        .account {
+            padding: 28px 24px;
+            background: var(--paper-soft);
+            border: 1px solid var(--line);
+        }
+
+        .account__number {
+            margin: 0;
+            font-family: var(--serif);
+            font-size: 25px;
+            letter-spacing: 0.02em;
+            word-break: break-all;
+        }
+
+        .account__copy {
+            width: 100%;
+            min-height: 60px;
+            margin-top: 22px;
+            border: 1px solid var(--accent);
+            border-radius: 0;
+            background: transparent;
+            color: var(--accent);
+            font-size: 19px;
+            font-weight: 600;
+        }
+
+        .account__copy:active { background: var(--paper); }
+
+        /* ---------- Closing ---------- */
+
+        .closing {
+            padding: 105px 28px 70px;
+            border-top: 1px solid var(--line);
+            text-align: center;
+        }
+
+        .closing__mark {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 30px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--line);
+            border-radius: 50%;
+            color: var(--accent);
+            font-family: var(--serif);
+            font-size: 21px;
+        }
+
+        .closing__message {
+            margin: 0;
+            color: var(--ink-soft);
+            font-size: 18px;
+            line-height: 2;
+        }
+
+        .share-button {
+            width: 100%;
+            min-height: 64px;
+            margin-top: 45px;
+            border: 0;
+            border-radius: 0;
+            background: var(--ink);
+            color: var(--white);
+            font-size: 21px;
+            font-weight: 600;
+        }
+
+        .share-button:active { opacity: 0.8; }
+
+        .closing__note {
+            margin: 15px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        /* ---------- Toast ---------- */
+
+        .toast {
+            position: fixed;
+            z-index: 10;
+            left: 50%;
+            bottom: 30px;
+            max-width: calc(100vw - 40px);
+            padding: 12px 18px;
+            transform: translate(-50%, 12px);
+            border-radius: 999px;
+            background: var(--ink);
+            color: var(--white);
+            font-size: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .toast.is-visible {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        /* ---------- Desktop ---------- */
+
+        @media (min-width: 480px) {
+            body { padding: 40px 16px; }
+
+            .obituary-page {
+                border-radius: 4px;
+                box-shadow: 0 20px 60px rgba(44, 42, 39, 0.12);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            .toast { transition: none; }
+        }
+    </style>
+</head>
+<body>
+<main class="obituary-page">
+
+    <section class="cover" aria-labelledby="deceased-name">
+        <div class="cover__inner">
+            <p class="cover__eyebrow">부 고</p>
+
+            <div class="cover__portrait" aria-hidden="true">
+                <div class="cover__portrait-placeholder">故</div>
+            </div>
+
+            <p class="cover__prefix">故</p>
+            <h1 class="cover__name" id="deceased-name" th:text="${obituary.name}"></h1>
+
+            <div class="cover__divider" aria-hidden="true"></div>
+
+            <p class="cover__message">
+                <span th:text="${obituary.deathDateText} + ','"></span><br>
+                별세하셨음을 삼가 알려 드립니다.
+            </p>
+        </div>
+
+        <div class="cover__scroll" aria-hidden="true">
+            <span>SCROLL</span>
+            <i></i>
+        </div>
+    </section>
+
+    <section class="section funeral-section" aria-labelledby="funeral-title">
+        <div class="section__heading">
+            <p class="section__eyebrow">FUNERAL</p>
+            <h2 id="funeral-title">장례 안내</h2>
+        </div>
+
+        <div class="info-list">
+            <article class="info-item">
+                <p class="info-item__label">빈소</p>
+                <p class="info-item__value">
+                    [[${obituary.funeralHome}]]
+                    <span th:text="${obituary.room}"></span>
+                </p>
+            </article>
+
+            <article class="info-item">
+                <p class="info-item__label">발인</p>
+                <p class="info-item__value" th:text="${obituary.departureDateText}"></p>
+            </article>
+
+            <article class="info-item" th:unless="${#strings.isEmpty(obituary.address)}">
+                <p class="info-item__label">위치</p>
+                <p class="info-item__value" th:text="${obituary.address}"></p>
+                <a class="text-action" target="_blank" rel="noopener"
+                   th:href="'https://map.kakao.com/?q=' + ${#uris.escapeQueryParam(obituary.address)}">
+                    지도에서 길 찾기 <span>↗</span>
+                </a>
+            </article>
+        </div>
+    </section>
+
+    <section class="section family-section" aria-labelledby="family-title">
+        <div class="section__heading">
+            <p class="section__eyebrow">FAMILY</p>
+            <h2 id="family-title">상주</h2>
+        </div>
+
+        <div class="family-card">
+            <div>
+                <p class="family-card__name" th:text="${obituary.mournerName}"></p>
+                <p class="family-card__relation" th:text="${obituary.mournerPhone}"></p>
+            </div>
+            <a class="circle-action"
+               th:href="'tel:' + ${obituary.mournerPhone}"
+               th:aria-label="${obituary.mournerName} + '에게 전화하기'">☎</a>
+        </div>
+    </section>
+
+    <section class="section account-section" aria-labelledby="account-title"
+             th:unless="${#strings.isEmpty(obituary.account)}">
+        <div class="section__heading">
+            <p class="section__eyebrow">CONDOLENCE</p>
+            <h2 id="account-title">조의금 안내</h2>
+        </div>
+
+        <div class="account">
+            <p class="account__number" th:text="${obituary.account}"></p>
+            <button type="button" class="account__copy" id="btn-copy-account"
+                    th:attr="data-account=${obituary.account}">
+                계좌번호 복사
+            </button>
+        </div>
+    </section>
+
+    <section class="closing">
+        <div class="closing__mark">故</div>
+        <p class="closing__message">
+            고인의 평안한 안식을 바라며<br>
+            삼가 고인의 명복을 빕니다.
+        </p>
+
+        <button type="button" class="share-button" id="btn-share">
+            부고장 보내기
+        </button>
+
+        <p class="closing__note">이 링크를 가족과 지인에게 전해 주세요.</p>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</main>
+
+<script>
+    const toast = document.getElementById('toast');
+
+    function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add('is-visible');
+        window.setTimeout(() => toast.classList.remove('is-visible'), 2200);
+    }
+
+    const copyButton = document.getElementById('btn-copy-account');
+
+    if (copyButton) {
+        copyButton.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(copyButton.dataset.account);
+                showToast('계좌번호를 복사했습니다.');
+            } catch {
+                showToast('계좌번호를 복사하지 못했습니다.');
+            }
+        });
+    }
+
+    document.getElementById('btn-share').addEventListener('click', async () => {
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: document.title, url: location.href });
+            } else {
+                await navigator.clipboard.writeText(location.href);
+                showToast('링크를 복사했습니다. 카카오톡에 붙여넣기 해 주세요.');
+            }
+        } catch {
+            // 사용자가 공유 창을 닫은 경우 아무 동작도 하지 않는다.
+        }
+    });
+</script>
+</body>
+</html>

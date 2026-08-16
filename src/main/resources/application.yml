@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: obituary-maker
+  profiles:
+    default: local
+  cloud:
+    aws:
+      region:
+        static: ${AWS_REGION:ap-northeast-2}
+
+s3-bucket: obituary-local
+public-base-url: http://localhost:8080
+google-credentials: ""
+spreadsheet-id: ""
+admin-token: ""
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+---
+# 로컬: 프로젝트 루트의 .env(properties 형식)에서 읽는다. 없으면 위 기본값으로 뜬다.
+spring:
+  config:
+    activate:
+      on-profile: local
+    import: optional:file:.env[.properties]
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+
+---
+# 로컬이 아닌 환경: Parameter Store에서만 읽는다. 없으면 기동을 실패시켜 잘못된 기본값으로 뜨는 걸 막는다.
+spring:
+  config:
+    activate:
+      on-profile: "!local"
+    import: aws-parameterstore:/obituary/
