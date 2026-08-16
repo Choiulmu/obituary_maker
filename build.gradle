@@ -2,6 +2,8 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.5'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.jetbrains.kotlin.jvm'
+    id "org.jetbrains.kotlin.plugin.lombok" version '2.4.0'
 }
 
 group = 'com.example'
@@ -27,12 +29,14 @@ dependencies {
     implementation 'io.awspring.cloud:spring-cloud-aws-starter-parameter-store'
     implementation 'com.google.apis:google-api-services-sheets:v4-rev20250603-2.0.0'
     implementation 'com.google.auth:google-auth-library-oauth2-http:1.48.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
 }
 
 tasks.named('test') {
