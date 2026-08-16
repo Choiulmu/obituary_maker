@@ -107,6 +107,15 @@ SecureString은 조회 시점에 복호화돼 일반 프로퍼티처럼 들어�
 
 서버에 남는 환경 변수는 리전(`AWS_REGION`) 하나뿐이다. 이것도 EC2에서는 인스턴스 메타데이터로 채워진다.
 
+값을 읽는 곳은 프로필로 갈린다. 기본 프로필은 `local`이라 개발자는 아무것도 지정하지 않고 띄우면 되고, 서버는 `SPRING_PROFILES_ACTIVE`로 다른 프로필을 준다.
+
+| 프로필 | 읽는 곳 | 없을 때 |
+|---|---|---|
+| `local` (기본) | 프로젝트 루트 `.env` (properties 형식, 커밋 안 함) | `application.yml`의 로컬 기본값으로 뜬다 |
+| 그 외 (실서버) | Parameter Store `/obituary/` | 기동 실패 (`optional:` 없이 임포트한다) |
+
+프로퍼티 이름은 두 곳이 같다(`google-credentials`, `spreadsheet-id`, …). 다만 서비스 계정 키 JSON은 여러 줄이라 properties 파일에 그대로 넣을 수 없어서, 로컬에서는 `google-credentials`에 **키 파일 경로**를 적는다. `GoogleSheetsConfig`가 값이 `{`로 시작하면 JSON 본문, 아니면 파일 경로로 읽는다.
+
 ---
 
 ## 3. 생성 Flow
