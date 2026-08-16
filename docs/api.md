@@ -13,7 +13,7 @@ Thymeleaf 기반 SSR이므로 JSON API가 아닌 **HTML 페이지 / 폼 전송 �
 | 부고장 작성 | POST | `/obituaries/preview` | 미리보기 |
 | 부고장 작성 | POST | `/obituaries` | 부고장 생성 + 고유 링크 발급 |
 | 부고장 작성 | GET | `/obituaries/{id}/complete` | 생성 완료 / 링크 공유 |
-| 부고장 조회 | GET | `https://obituary.example.com/{id}/` | 공유용 부고장 페이지 (S3 정적 HTML, 앱 아님) |
+| 부고장 조회 | GET | `https://{버킷}.s3.{리전}.amazonaws.com/{id}/index.html` | 공유용 부고장 페이지 (S3 정적 HTML, 앱 아님) |
 | 운영자 | PATCH | `/admin/obituaries/{id}` | 부고장 수정 (시트 갱신 + 페이지 재발행) |
 
 ---
@@ -108,7 +108,7 @@ S3 업로드를 먼저 하고 시트 기록을 나중에 한다. 시트에 없�
 - Output: `obituary/complete.html`
 - Response: `200`
 ```
-model.shareUrl = https://obituary.example.com/a1b2c3d4-e5f6-4718-9abc-0123456789ab/
+model.shareUrl = https://obituary-prod.s3.ap-northeast-2.amazonaws.com/a1b2c3d4-e5f6-4718-9abc-0123456789ab/index.html
 model.name     = 홍길동
 ```
 - 화면: 부고장 보내기 / 링크 복사하기 / 부고장 보기 버튼
@@ -123,9 +123,10 @@ SDK를 쓰려면 앱 키와 도메인 등록이 필요하고 값을 하나 더 �
 
 ## 3. 부고장 조회
 
-### GET `https://obituary.example.com/{id}/`
+### GET `https://{버킷}.s3.{리전}.amazonaws.com/{id}/index.html`
 
-애플리케이션 엔드포인트가 아니다. S3에 올라간 정적 HTML을 CloudFront가 그대로 내려준다.
+애플리케이션 엔드포인트가 아니다. S3에 올라간 정적 HTML을 S3가 그대로 내려준다.
+주소 끝에 `index.html`이 붙는 이유는 S3 REST 엔드포인트가 디렉터리 인덱스를 해주지 않기 때문이다.
 
 - 내용: 발행 시점의 `obituary/view.html` 렌더 결과 (모바일 기준)
 - Response (성공): `200`
@@ -140,10 +141,10 @@ mournerName    홍철수
 mournerPhone   010-1234-5678
 account        국민 123456-01-123456 홍철수
 ```
-- Response (없는 링크): `404` → S3 에러 문서 `404.html`
-```
-부고장을 찾을 수 없습니다. 링크를 다시 확인해 주세요.
-```
+- Response (없는 링크): `404` → S3 기본 에러 (XML `NoSuchKey`)
+
+안내 문구가 있는 404 페이지는 만들지 않는다. 에러 문서 지정은 S3 웹사이트 엔드포인트나 CloudFront에서만 되는데, 둘 다 도메인을 붙이는 시점까지 미뤘다.
+링크는 60일이 지나면 만료되고, 그때 뜨는 화면이 XML이라는 뜻이다.
 
 ---
 
@@ -162,7 +163,7 @@ account        국민 123456-01-123456 홍철수
 - Response (시트에 없는 ID): `404`
 
 ```
-curl -X PATCH https://obituary.example.com/admin/obituaries/a1b2c3d4-e5f6-4718-9abc-0123456789ab \
+curl -X PATCH https://dxxxxxxxxxxxxx.cloudfront.net/admin/obituaries/a1b2c3d4-e5f6-4718-9abc-0123456789ab \
   -H "X-Admin-Token: $ADMIN_TOKEN" \
   -d "room=5호실" \
   -d "departureDate=2026-08-17"
@@ -177,7 +178,7 @@ PUT이면 매번 필수 7개를 전부 다시 보내야 하고, 하나를 빠뜨
 고칠 수 있는 항목은 [입력 필드](#입력-필드) 9개뿐이다. `id`·`createdAt`·`shareUrl`처럼 목록에 없는 이름을 보내면 아무것도 고치지 않고 `400`이다.
 오타 난 필드 이름을 조용히 넘기면 운영자는 고쳤다고 생각하는데 값은 그대로인 상태가 된다.
 
-CloudFront 캐시 TTL이 60초라 무효화 없이 1분 안에 반영된다.
+부고장 페이지 앞에 캐시가 없어 다음 요청부터 바로 반영된다.
 
 ---
 
@@ -202,3 +203,11 @@ CloudFront 캐시 TTL이 60초라 무효화 없이 1분 안에 반영된다.
 | 공유 방식 | 카카오톡 공유 버튼 | `navigator.share` (미지원 시 링크 복사) | 앱 키·도메인 등록을 관리하지 않고도 카카오톡으로 보낼 수 있다 |
 | 수정 API 검증 | 넘어온 필드만 검증 | 시트 값에 덮어쓴 뒤 전체 검증 | 결과는 같고, 검증 규칙을 생성 폼과 한 벌로 유지한다 |
 | 수정 API 필드 | 규정 없음 | 목록에 없는 이름은 `400` | 오타를 조용히 넘기면 고쳤다고 생각하는데 값이 그대로다 |
+
+### 2026-08-16 — 도메인 없이 S3 주소를 그대로 쓰기로 정리
+
+| 항목 | 전 | 후 | 이유 |
+|---|---|---|---|
+| 부고장 주소 | `https://obituary.example.com/{id}/` | `https://{버킷}.s3.{리전}.amazonaws.com/{id}/index.html` | 도메인을 사지 않는다. REST 엔드포인트는 HTTPS가 기본이고 디렉터리 인덱스가 없다 |
+| 없는 링크 응답 | `404.html` 안내 문구 | S3 기본 XML 에러 | 에러 문서는 CloudFront나 웹사이트 엔드포인트에서만 지정된다 |
+| 수정 반영 시점 | 최대 60초 (CloudFront TTL) | 즉시 | 캐시를 두지 않는다 |

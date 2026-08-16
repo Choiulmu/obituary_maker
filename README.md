@@ -116,4 +116,4 @@ admin-token=local-token
 SPRING_PROFILES_ACTIVE=prod java -jar build/libs/obituary-maker-0.0.1-SNAPSHOT.jar
 ```
 
-AWS 자격 증명은 서버에 두지 않는다. 인스턴스 IAM 역할로 S3와 Parameter Store에 접근한다. 자세한 내용은 [아키텍처 문서의 설정 값](docs/architecture.md) 참고.
+AWS 액세스 키만 서버의 `~/.aws/credentials`에 둔다. Lightsail 인스턴스에는 IAM 역할을 붙일 수 없고, 키가 있어야 Parameter Store를 읽을 수 있어서 이것만은 파일로 간다. 자세한 내용은 [아키텍처 문서의 설정 값](docs/architecture.md) 참고.

@@ -33,7 +33,7 @@ MVP 기준. 데이터는 Google Sheets에 기록하고, 발행된 부고장은 S
 | J | 상주연락처 | mournerPhone | O | `010-1234-5678` |
 | K | 장례식장주소 | address | X | `서울시 서초구 원지동 산4-1` |
 | L | 조의금계좌 | account | X | `국민 123456-01-123456 홍철수` |
-| M | 부고장링크 | shareUrl | O | `https://obituary.example.com/a1b2c3d4-e5f6-4718-9abc-0123456789ab/` |
+| M | 부고장링크 | shareUrl | O | `https://obituary-prod.s3.ap-northeast-2.amazonaws.com/a1b2c3d4-e5f6-4718-9abc-0123456789ab/index.html` |
 
 ### 저장 규칙
 
@@ -63,7 +63,7 @@ A열(부고장ID)로 행을 찾으며, MVP 데이터량 기준으로는 시트 �
 ```text
 사용자
   ├─ 작성자 (모바일 브라우저)  ──▶  Spring Boot 서버
-  └─ 수신자 (카카오톡 링크)    ──▶  CloudFront  ──▶  S3
+  └─ 수신자 (카카오톡 링크)    ──▶  S3
 
 Spring Boot 단일 서버
   ├─ common
@@ -86,18 +86,19 @@ Spring Boot 단일 서버
 설정 값이 Parameter Store에서 프로퍼티로 들어오므로 어딘가에서는 빈을 조립해야 하고, 이걸 Client 안에 두면 테스트에서 갈아끼울 수 없다.
 DB가 없으니 `DatabaseConfig`는 만들 것이 없고, `ExcelService`는 `GoogleSheetsClient`와 책임이 같아 이름만 둘로 늘어난다.
 
-`AwsConfig`도 두지 않는다. `spring-cloud-aws-starter-s3`가 리전과 IAM 역할을 읽어 `S3Client` 빈을 이미 만들어 주므로, 같은 것을 다시 조립하는 빈 클래스만 남는다.
+`AwsConfig`도 두지 않는다. `spring-cloud-aws-starter-s3`가 리전과 자격 증명을 읽어 `S3Client` 빈을 이미 만들어 주므로, 같은 것을 다시 조립하는 빈 클래스만 남는다.
 Sheets는 스타터가 없어서 `GoogleSheetsConfig`가 필요하다.
 
 ### 설정 값
 
-AWS 자격 증명은 두지 않는다. 서버는 Terraform이 붙여 준 IAM 역할로 S3와 Parameter Store에 접근한다.
+AWS 액세스 키만 서버에 파일(`~/.aws/credentials`)로 둔다. Lightsail 인스턴스에는 IAM 역할을 붙일 수 없어서, EC2처럼 자격 증명 없이 갈 수는 없다.
+Parameter Store를 읽으려면 키가 먼저 있어야 하므로 이것만은 파라미터로 못 옮긴다.
 나머지 설정은 Parameter Store 한 곳에서 읽는다. 서버에 파일로 떨어뜨리거나 환경 변수로 늘어놓지 않는다.
 
 | 파라미터 | 타입 | 용도 |
 |---|---|---|
 | `/obituary/s3-bucket` | String | 부고장 HTML을 올릴 버킷 |
-| `/obituary/public-base-url` | String | 공유 링크에 붙일 도메인 (`https://obituary.example.com`) |
+| `/obituary/public-base-url` | String | 공유 링크에 붙일 주소 (`https://obituary-prod.s3.ap-northeast-2.amazonaws.com`) |
 | `/obituary/google-credentials` | SecureString | 서비스 계정 키 JSON 본문 |
 | `/obituary/spreadsheet-id` | SecureString | `부고장 관리` 스프레드시트 ID |
 | `/obituary/admin-token` | SecureString | `X-Admin-Token` 헤더와 비교할 값 |
@@ -105,7 +106,7 @@ AWS 자격 증명은 두지 않는다. 서버는 Terraform이 붙여 준 IAM 역
 `spring-cloud-aws-starter-parameter-store`를 쓰고 `spring.config.import=aws-parameterstore:/obituary/` 한 줄을 둔다.
 SecureString은 조회 시점에 복호화돼 일반 프로퍼티처럼 들어오므로 값을 가져오는 코드를 따로 쓰지 않는다.
 
-서버에 남는 환경 변수는 리전(`AWS_REGION`) 하나뿐이다. 이것도 EC2에서는 인스턴스 메타데이터로 채워진다.
+서버에 남는 환경 변수는 리전(`AWS_REGION`)과 프로필(`SPRING_PROFILES_ACTIVE`) 둘뿐이다.
 
 값을 읽는 곳은 프로필로 갈린다. 기본 프로필은 `local`이라 개발자는 아무것도 지정하지 않고 띄우면 되고, 서버는 `SPRING_PROFILES_ACTIVE`로 다른 프로필을 준다.
 
@@ -147,16 +148,14 @@ S3 업로드(3-2)를 시트 기록(3-3)보다 먼저 한다. 반대 순서로 �
 ## 4. 조회 Flow
 
 ```text
-수신자  GET  https://obituary.example.com/a1b2c3d4-e5f6-4718-9abc-0123456789ab/
+수신자  GET  https://obituary-prod.s3.ap-northeast-2.amazonaws.com/a1b2c3d4-.../index.html
 
-  CloudFront 캐시 있음                    ──▶  200  부고장 페이지
-  CloudFront 캐시 없음
-      └─ S3  a1b2c3d4-e5f6-4718-9abc-0123456789ab/index.html 있음     ──▶  200  부고장 페이지 (60초 캐시)
-         S3  객체 없음                    ──▶  404  404.html
-                                               "부고장을 찾을 수 없습니다"
+  S3  객체 있음   ──▶  200  부고장 페이지
+  S3  객체 없음   ──▶  404  S3 기본 에러 (XML)
 ```
 
 애플리케이션 서버를 거치지 않는다. 앱이 죽어 있어도 이미 발행된 부고장은 열린다.
+캐시가 없으므로 수정한 내용은 다음 요청부터 바로 보인다.
 
 ---
 
@@ -173,7 +172,7 @@ S3 업로드(3-2)를 시트 기록(3-3)보다 먼저 한다. 반대 순서로 �
      2-5. HTML 재렌더  ──▶  S3 {id}/index.html 덮어쓰기
      2-6. 200 "수정했습니다"
 
-3. 최대 60초 뒤 CloudFront 캐시 만료  ──▶  수정본 노출
+3. 다음 요청부터 수정본 노출
 ```
 
 시트 갱신(2-4)을 S3 업로드(2-5)보다 먼저 한다. 시트가 원본이므로, S3에서 실패하면 다시 호출해 맞출 수 있다.
@@ -184,56 +183,63 @@ S3 업로드(3-2)를 시트 기록(3-3)보다 먼저 한다. 반대 순서로 �
 
 ## 6. 인프라
 
+도메인을 사지 않는다. 두 주소 모두 AWS가 기본으로 주는 것을 그대로 쓴다.
+
 ```text
 카카오톡 공유 링크
         │
         ▼
-obituary.example.com  (도메인)
-        │
-        ▼
-CloudFront  HTTPS · TTL 60초
-        │
-        ▼
-S3 버킷  {id}/index.html · 404.html
+S3 버킷  {id}/index.html          ◀── 퍼블릭 읽기 · HTTPS 기본 제공
         ▲
         │ 발행 / 수정 업로드
         │
-작성자 ──▶ Spring Boot JAR (서버 1대)
-        │
-        ▼
-Google Sheets API  ──▶  Google Sheets (obituaries)
+작성자 ──▶ Lightsail 배포판 ──▶ Lightsail 인스턴스 (Spring Boot JAR)
+           dxxxx.cloudfront.net           │
+           HTTPS · 캐시 끔                 ▼
+                                 Google Sheets API  ──▶  Google Sheets (obituaries)
 ```
 
 | 구성 | MVP 선택 |
 |---|---|
-| 실행 | 서버 1대에서 Spring Boot 실행 파일 구동 |
+| 실행 | Lightsail 인스턴스(1GB, 서울) 1대에서 Spring Boot 실행 파일 구동 |
 | 빌드 | Gradle (Java 17, Spring Boot 3.4.5) |
-| 부고장 서빙 | S3 정적 파일. 키는 `{id}/index.html`, 에러 문서는 `404.html` |
-| HTTPS · 도메인 | CloudFront. S3 웹사이트 엔드포인트는 HTTP만 지원해서 커스텀 도메인 HTTPS에는 CloudFront가 필요하다. 카카오톡 링크 미리보기와 신뢰감 확보에 필요 |
-| 캐시 | CloudFront TTL 60초. 수정 후 무효화 호출 없이 1분 안에 반영된다 |
+| 부고장 서빙 | S3 정적 파일. 키는 `{id}/index.html` |
+| 부고장 주소 | S3 REST 엔드포인트(`https://{버킷}.s3.{리전}.amazonaws.com`). `amazonaws.com`에 인증서가 이미 붙어 있어 도메인·ACM·CloudFront 없이 HTTPS가 된다 |
+| 작성 화면 주소 | Lightsail 배포판이 주는 `dxxxx.cloudfront.net`. 인증서 발급·갱신을 AWS가 한다. 캐시는 끈다 |
+| 캐시 | 없음. 수정하면 다음 요청부터 바로 반영된다 |
 | 보관 기간 | S3 라이프사이클 규칙으로 60일 뒤 객체 자동 삭제. 삭제용 코드나 배치 작업은 만들지 않는다 |
 | 데이터 저장 | Google Sheets API (서비스 계정) |
-| 인증 정보 | AWS는 인스턴스 IAM 역할. 서비스 계정 키·스프레드시트 ID·운영자 토큰은 Parameter Store SecureString. 저장소에 커밋하지 않는다 |
-| 인프라 관리 | Terraform. 버킷·CloudFront·IAM 역할·파라미터를 코드로 만든다 |
+| 인증 정보 | AWS 액세스 키는 인스턴스의 `~/.aws/credentials`. 서비스 계정 키·스프레드시트 ID·운영자 토큰은 Parameter Store SecureString. 저장소에 커밋하지 않는다 |
+| 인프라 관리 | 콘솔에서 손으로 만든다. 리소스가 7개뿐이라 Terraform을 두지 않는다 |
 | 운영자 알림 | 서버에서 직접 발송 (채널은 구현 시점 결정) |
 | 배포 | JAR 교체 후 재시작 |
+
+리소스는 Lightsail 인스턴스 · 고정 IP · 방화벽 · Lightsail 배포판 · S3 버킷 · IAM 사용자 · Parameter Store 일곱 개다.
+
+### 도메인을 나중에 붙일 때
+
+`public-base-url`이 Parameter Store 값이라 도메인이 정해지면 갈아타는 비용이 거의 없다.
+버킷 앞에 CloudFront를 세우고 이 값만 바꾸면 되고, 작성 화면은 지금 쓰는 배포판에 도메인만 추가하면 된다.
+이미 뿌린 S3 링크도 버킷이 살아 있는 한 계속 열린다.
 
 ### 접근 권한
 
 - Google Sheets 문서는 서비스 계정 이메일에 편집 권한을 부여한다.
 - 운영자는 같은 스프레드시트를 브라우저에서 열어 확인만 한다. 값을 고칠 때는 `PATCH /admin/obituaries/{id}`를 쓴다.
-- S3 버킷은 CloudFront(OAC)에만 읽기를 허용하고, 쓰기는 서버의 IAM 역할만 가능하다.
-- 서버 IAM 역할에 주는 권한은 세 가지뿐이다. 버킷 하위 객체 쓰기(`s3:PutObject`), `/obituary/` 파라미터 읽기(`ssm:GetParameter*`), SecureString 복호화(`kms:Decrypt`).
+- S3 버킷은 객체 읽기를 누구에게나 허용한다. 어차피 링크를 아는 사람이 인증 없이 여는 페이지라 OAC로 막을 대상이 없다. 쓰기는 아래 IAM 사용자만 가능하다.
+- IAM 사용자에게 주는 권한은 세 가지뿐이다. 버킷 하위 객체 쓰기(`s3:PutObject`), `/obituary/` 파라미터 읽기(`ssm:GetParameter*`), SecureString 복호화(`kms:Decrypt`).
+- Lightsail 방화벽은 80·443만 열고, 22번은 접속할 IP에서만 열어 둔다.
 - `/admin/**`은 `/obituary/admin-token` 값과 `X-Admin-Token` 헤더 비교로만 막는다. 운영자가 한 명이라 Spring Security는 도입하지 않는다.
 
 ---
 
 ## 7. 발행된 HTML의 제약
 
-- 페이지는 발행 시점의 값이 박힌 정적 HTML이다. 수정 API는 HTML을 다시 만들어 올리므로 최신값이 되지만(최대 60초 캐시 지연), API를 거치지 않고 시트만 브라우저에서 고치면 HTML은 그대로라 옛 값이 남는다.
+- 페이지는 발행 시점의 값이 박힌 정적 HTML이다. 수정 API는 HTML을 다시 만들어 올리므로 최신값이 되지만, API를 거치지 않고 시트만 브라우저에서 고치면 HTML은 그대로라 옛 값이 남는다.
 - 템플릿(`obituary/view.html`)을 고치면 이미 발행된 부고장에는 반영되지 않는다. 전체에 반영하려면 모든 ID를 다시 발행해야 한다.
 - ID는 추측하기 어려운 랜덤 문자열이어야 한다. S3에 올라간 순간 인증 없이 누구나 열 수 있는 URL이고, 상주 연락처가 들어 있다.
 - 60일이 지나면 링크는 404가 된다. 장례가 끝난 뒤에도 상주 연락처가 계속 공개돼 있을 이유가 없어서 기한을 둔다.
+- 만료됐거나 주소를 잘못 친 링크에는 S3의 기본 XML 에러가 뜬다. 안내 문구를 보여주려면 CloudFront가 필요한데, 도메인을 붙이는 시점까지 미룬다.
 - 수정 API가 객체를 덮어쓰면 라이프사이클 기한이 그 시점부터 다시 60일이다. 만료 직전에 고친 부고장은 예상보다 오래 남는다.
 - 시트 행은 지우지 않는다. 페이지가 사라져도 어떤 부고장을 만들었는지는 운영 기록으로 남는다.
 
@@ -262,4 +268,17 @@ Google Sheets API  ──▶  Google Sheets (obituaries)
 | 공유 방식 | 카카오톡 공유 버튼 | `navigator.share` (미지원 시 링크 복사) | 앱 키·도메인 등록을 관리하지 않아도 된다 |
 | 시트 저장 값 | 규정 없음 | 공백까지 적은 그대로 저장 · 길이 제한(공백 포함) | 시트에 남는 값과 부고장 페이지에 박히는 값이 같아야 한다 |
 | 상주 | 규정 없음 | 이름·번호 각 한 명 | 이름은 여럿인데 번호는 하나면 조문객이 누구에게 연락할지 모른다 |
-| 리전 설정 | `AWS_REGION` 환경 변수만 | `spring.cloud.aws.region.static`에 기본값 | 환경 변수가 없는 로컬에서도 뜬다. EC2에서는 환경 변수가 이긴다 |
+| 리전 설정 | `AWS_REGION` 환경 변수만 | `spring.cloud.aws.region.static`에 기본값 | 환경 변수가 없는 로컬에서도 뜬다. 서버에서는 환경 변수가 이긴다 |
+
+### 2026-08-16 — Lightsail · 도메인 없이 가기로 정리
+
+| 항목 | 전 | 후 | 이유 |
+|---|---|---|---|
+| 서버 | EC2 가정 | Lightsail 인스턴스 1대 | 요금이 고정이라 MVP 비용을 예측하기 쉽다 |
+| AWS 자격 증명 | 인스턴스 IAM 역할 | IAM 사용자 액세스 키를 인스턴스 파일로 | Lightsail 인스턴스에는 IAM 역할을 붙일 수 없다 |
+| 부고장 앞단 | CloudFront + OAC (TTL 60초) | 없음. S3 REST 엔드포인트 직접 | `amazonaws.com`에 인증서가 이미 있어 도메인 없이 HTTPS가 된다. 캐시가 없어 수정도 즉시 반영된다 |
+| 도메인·ACM·DNS 존 | 필요 | 없음 | 이름이 정해지지 않았고, `public-base-url`만 바꾸면 나중에 붙일 수 있다 |
+| 작성 화면 HTTPS | 규정 없음 | Lightsail 배포판 | 폼이 상주 연락처를 받아 HTTPS가 필요하다. 인증서 갱신을 AWS에 맡긴다 |
+| 공유 URL | `/{id}/` | `/{id}/index.html` | REST 엔드포인트는 디렉터리 인덱스를 해주지 않는다 |
+| 404 안내 문서 | `404.html` | 없음 (S3 XML 에러) | 에러 문서는 웹사이트 엔드포인트나 CloudFront에서만 지정할 수 있다 |
+| 인프라 관리 | Terraform | 콘솔에서 직접 | 리소스가 7개고 바뀔 일이 드물다 |
